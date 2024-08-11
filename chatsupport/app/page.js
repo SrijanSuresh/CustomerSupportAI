@@ -3,6 +3,8 @@
 import { Box, Button, Stack, TextField } from '@mui/material'
 import { useState } from 'react'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
+import { styled, keyframes } from '@mui/system'
+import RobotIcon from '@mui/icons-material/SmartToy' // Example robot icon from MUI
 
 const theme = createTheme({
   palette: {
@@ -52,17 +54,39 @@ const theme = createTheme({
   },
 })
 
+// Animation keyframes
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`
+
+const AnimatedRobot = styled(RobotIcon)(({ theme }) => ({
+  position: 'absolute',
+  top: '20px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  fontSize: '48px',
+  color: theme.palette.primary.main,
+  animation: `${fadeIn} 3s ease-out forwards`,
+}))
+
 export default function Home() {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: "Hello there! How can I help you today?",
+      content: 'Hello there! How can I help you today?',
     },
   ])
   const [message, setMessage] = useState('')
 
   const sendMessage = async () => {
-    if (!message.trim()) return; // Do not send empty messages
+    if (!message.trim()) return // Do not send empty messages
 
     // Add user's message to the chat
     setMessages([...messages, { role: 'user', content: message }])
@@ -94,6 +118,13 @@ export default function Home() {
     }
   }
 
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault() // Prevent new line from being added
+      sendMessage()
+    }
+  }
+
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -104,17 +135,19 @@ export default function Home() {
         justifyContent="center"
         alignItems="center"
         bgcolor="background.default"
-        p={2} // Padding for the Box to create some space around the edges
+        p={2}
+        position="relative" // Ensure the box is relative for the absolute-positioned robot
       >
+        {<AnimatedRobot />}
         <Stack
           direction={'column'}
-          flex={1} // Allow the stack to grow and fill the available space
+          flex={1}
           border="1px solid #1E90FF"
           borderRadius="16px"
           p={2}
           spacing={3}
           bgcolor="#1A1A1A"
-          overflow="hidden" // Ensure the content doesn't overflow
+          overflow="hidden"
         >
           <Stack
             direction={'column'}
@@ -152,7 +185,9 @@ export default function Home() {
               fullWidth
               value={message}
               onChange={(e) => setMessage(e.target.value)}
+              onKeyDown={handleKeyDown}
               variant="outlined"
+              multiline // Allows the text field to accept multiple lines, if needed
             />
             <Button variant="contained" onClick={sendMessage}>
               Send
@@ -161,5 +196,5 @@ export default function Home() {
         </Stack>
       </Box>
     </ThemeProvider>
-  );
+  )
 }

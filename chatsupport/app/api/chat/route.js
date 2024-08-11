@@ -4,7 +4,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Mock function to simulate travel-related document retrieval for U.S.
 async function retrieveTravelDocuments(query) {
   // Simulate retrieval from a travel knowledge base, API, or database.
-  // This should return relevant information about U.S. destinations, activities, etc.
   return [
     `Visit the Grand Canyon in Arizona for breathtaking views.`,
     `Explore the vibrant city life in New York City.`,
@@ -31,10 +30,20 @@ export async function POST(req) {
   };
 
   try {
-    // Step 1: Retrieve relevant travel documents based on the user's input
+    // Simple check to determine if the input is related to travel
+    const isTravelRelated = /travel|trip|vacation|destination|tour|explore|visit/i.test(user);
+
+    if (!isTravelRelated) {
+      // Prompt the user to send travel-related queries
+      return NextResponse.json({
+        text: "It looks like your query isn't related to travel. Please provide information or questions related to travel, destinations, or activities in the U.S.",
+      });
+    }
+
+    // Retrieve relevant travel documents based on the user's input
     const retrievedDocuments = await retrieveTravelDocuments(user);
 
-    // Step 2: Combine the retrieved documents with the user's input
+    // Combine the retrieved documents with the user's input
     const combinedInput = `
       User Input: ${user}
 
@@ -42,7 +51,7 @@ export async function POST(req) {
       ${retrievedDocuments.join("\n")}
     `;
 
-    // Step 3: Start a chat session with the combined input
+    // Start a chat session with the combined input
     const chatSession = model.startChat({
       generationConfig,
       history: [],
