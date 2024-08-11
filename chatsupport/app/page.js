@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Button, Stack, TextField } from '@mui/material'
+import { Box, Button, Stack, TextField, CircularProgress } from '@mui/material'
 import { useState } from 'react'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { styled, keyframes } from '@mui/system'
@@ -85,13 +85,15 @@ export default function Home() {
     },
   ])
   const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const sendMessage = async () => {
     if (!message.trim()) return // Do not send empty messages
 
     // Add user's message to the chat
-    setMessages([...messages, { role: 'user', content: message }])
+    setMessages(prevMessages => [...prevMessages, { role: 'user', content: message }])
     setMessage('') // Clear the input field
+    setLoading(true)
 
     try {
       // Send message to your backend
@@ -111,11 +113,18 @@ export default function Home() {
       const data = await response.json()
 
       // Add assistant's response to the chat
-      setMessages([...messages, { role: 'user', content: message }, { role: 'assistant', content: data.text }])
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { role: 'assistant', content: data.text },
+      ])
     } catch (error) {
       console.error('Error:', error)
-      // Optionally show an error message in the chat
-      setMessages([...messages, { role: 'user', content: message }, { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' }])
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { role: 'assistant', content: 'Sorry, something went wrong. Please try again.' },
+      ])
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -155,6 +164,7 @@ export default function Home() {
             spacing={2}
             flexGrow={1}
             overflow="auto"
+            aria-live="polite" // For screen readers
           >
             {messages.map((message, index) => (
               <Box
@@ -163,6 +173,7 @@ export default function Home() {
                 justifyContent={
                   message.role === 'assistant' ? 'flex-start' : 'flex-end'
                 }
+                mb={1}
               >
                 <Box
                   bgcolor={
@@ -172,13 +183,18 @@ export default function Home() {
                   }
                   color="white"
                   borderRadius={16}
-                  p={3}
+                  p={2}
                   maxWidth="80%"
                 >
                   {message.content}
                 </Box>
               </Box>
             ))}
+            {loading && (
+              <Box display="flex" justifyContent="center" mt={2}>
+                <CircularProgress color="primary" />
+              </Box>
+            )}
           </Stack>
           <Stack direction={'row'} spacing={2}>
             <TextField
@@ -188,9 +204,9 @@ export default function Home() {
               onChange={(e) => setMessage(e.target.value)}
               onKeyDown={handleKeyDown}
               variant="outlined"
-              multiline // Allows the text field to accept multiple lines, if needed
+              multiline
             />
-            <Button variant="contained" onClick={sendMessage}>
+            <Button variant="contained" onClick={sendMessage} disabled={loading}>
               Send
             </Button>
           </Stack>
