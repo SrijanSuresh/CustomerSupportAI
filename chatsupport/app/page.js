@@ -4,7 +4,8 @@ import { Box, Button, Stack, TextField } from '@mui/material'
 import { useState } from 'react'
 import { createTheme, ThemeProvider } from '@mui/material/styles'
 import { styled, keyframes } from '@mui/system'
-import RobotIcon from '@mui/icons-material/SmartToy' // Example robot icon from MUI
+import { Analytics } from "@vercel/analytics/react"
+import RobotIcon from '@mui/icons-material/SmartToy'
 
 const theme = createTheme({
   palette: {
@@ -195,6 +196,7 @@ export default function Home() {
           </Stack>
         </Stack>
       </Box>
+      <Analytics/>
     </ThemeProvider>
   )
 }
