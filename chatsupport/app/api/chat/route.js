@@ -1,73 +1,78 @@
-import { NextResponse } from "next/server";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+const axios = require("axios");
+require("dotenv").config(); // Load environment variables from .env
 
-// Mock function to simulate travel-related document retrieval for U.S.
-async function retrieveTravelDocuments(query) {
-  // Simulate retrieval from a travel knowledge base, API, or database.
-  return [
-    `Visit the Grand Canyon in Arizona for breathtaking views.`,
-    `Explore the vibrant city life in New York City.`,
-    `Experience the beaches and theme parks in Florida.`,
-    `Discover the cultural and historical landmarks in Washington, D.C.`,
-  ].filter(doc => doc.toLowerCase().includes(query.toLowerCase()));
-}
-
-export async function POST(req) {
-  const reqBody = await req.json();
-  const { user } = reqBody;
-  const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.0-pro",
-  });
-
-  const generationConfig = {
-    temperature: 1,
-    topP: 0.95,
-    topK: 64,
-    maxOutputTokens: 8192,
-    responseMimeType: "text/plain",
-  };
-
-  try {
-    // Simple check to determine if the input is related to travel
-    const isTravelRelated = /travel|trip|vacation|destination|tour|explore|visit/i.test(user);
-
-    if (!isTravelRelated) {
-      // Prompt the user to send travel-related queries
-      return NextResponse.json({
-        text: "It looks like your query isn't related to travel. Please provide information or questions related to travel, destinations, or activities in the U.S.",
-      });
+// Hugging Face API call to generate embeddings
+async function getEmbedding(text) {
+  const response = await axios.post(
+    "https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2",
+    { inputs: text },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.HUGGINGFACE_API_KEY}`,  // Make sure you set the API key in .env
+      },
     }
+  );
 
-    // Retrieve relevant travel documents based on the user's input
-    const retrievedDocuments = await retrieveTravelDocuments(user);
-
-    // Combine the retrieved documents with the user's input
-    const combinedInput = `
-      User Input: ${user}
-
-      U.S. Travel Knowledge Base:
-      ${retrievedDocuments.join("\n")}
-    `;
-
-    // Start a chat session with the combined input
-    const chatSession = model.startChat({
-      generationConfig,
-      history: [],
-    });
-
-    // Send the combined input to the chat session
-    const result = await chatSession.sendMessage(combinedInput);
-    const response = await result.response;
-    const text = await response.text();
-
-    return NextResponse.json({
-      text,
-    });
-  } catch (error) {
-    return NextResponse.json({
-      text: "Unable to process the prompt. Please try again.",
-    });
-  }
+  return response.data[0];  // The embedding is returned in this format
 }
+
+// Example usage to generate embedding for a text
+(async () => {
+  const text = "This is an example text.";
+  const embedding = await getEmbedding(text);
+  console.log(embedding);
+
+  const documents = [
+    { id: 'vec1', text: "Visit the Grand Canyon in Arizona.", genre: 'drama' },
+    { id: 'vec2', text: "Explore the city life in New York.", genre: 'action' },
+    { id: 'vec3', text: "Experience beaches and parks in Florida.", genre: 'drama' },
+    { id: 'vec4', text: "Enjoy skiing in Colorado.", genre: 'action' }
+  ];
+
+  // Store embeddings for each document
+  async function generateAndStoreEmbeddings() {
+    for (let doc of documents) {
+      const embedding = await getEmbedding(doc.text);
+      doc.embedding = embedding;  // Save the embedding for future searches
+    }
+  }
+
+  // Call the function to store embeddings
+  await generateAndStoreEmbeddings();
+  console.log(documents);  // Now documents have embeddings associated with them
+
+  // Function to compute cosine similarity
+  function cosineSimilarity(vec1, vec2) {
+    const dotProduct = vec1.reduce((sum, v, i) => sum + v * vec2[i], 0);
+    const magnitudeA = Math.sqrt(vec1.reduce((sum, v) => sum + v * v, 0));
+    const magnitudeB = Math.sqrt(vec2.reduce((sum, v) => sum + v * v, 0));
+    return dotProduct / (magnitudeA * magnitudeB);
+  }
+
+  // Querying the documents for most similar vectors
+  async function queryDocuments(query) {
+    const queryEmbedding = await getEmbedding(query);
+
+    // Filter documents by genre if required
+    const genreFilter = 'action';  // Example genre filter
+
+    // Compute similarity for each document and rank them
+    const results = documents
+      .filter(doc => doc.genre === genreFilter)  // Apply genre filter
+      .map(doc => ({
+        id: doc.id,
+        text: doc.text,
+        similarity: cosineSimilarity(queryEmbedding, doc.embedding),
+      }))
+      .sort((a, b) => b.similarity - a.similarity);  // Sort by similarity
+
+    // Return top 2 results
+    return results.slice(0, 2);
+  }
+
+  // Example query
+  const query = "I want to explore the best cities in the US.";
+  const topResults = await queryDocuments(query);
+
+  console.log(topResults);
+})();
