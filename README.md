@@ -3,7 +3,8 @@
 
 ![stravelbot](https://img.shields.io/badge/Deployed-Vercel-green)  
 [![Website](https://img.shields.io/website?down_color=red&down_message=Offline&up_color=green&up_message=Online&url=https%3A%2F%2Fstravelbot.vercel.app)](https://stravelbot.vercel.app)
-
+### Demo Video
+[![Watch the video](https://img.youtube.com/vi/YV9Ae1pt_z4/0.jpg)](https://www.youtube.com/watch?v=YV9Ae1pt_z4)
 ## Project Overview
 
 This project is an AI-powered travel customer care chatbot built using **Next.js**, **Gemini API**, and **Pinecone** for Retrieval-Augmented Generation (RAG). The chatbot is deployed on an **AWS EC2 server** and provides real-time assistance to users with travel-related queries, significantly improving customer support efficiency.
